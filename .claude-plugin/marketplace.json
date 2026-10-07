@@ -1,0 +1,14 @@
+{
+  "name": "kokko-ng-claude-context-bar",
+  "description": "Claude Code context-window bar, as a mod",
+  "owner": { "name": "kokko-ng" },
+  "plugins": [
+    {
+      "name": "context-bar",
+      "source": "./",
+      "description": "Band above the prompt: a context-window bar segmented by category, and what the context comprises",
+      "version": "1.0.0",
+      "author": { "name": "kokko-ng" }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "context-bar",
+  "version": "1.0.0",
+  "description": "Band above the prompt: a context-window bar segmented by category, and what the context comprises",
+  "author": { "name": "kokko-ng" },
+  "repository": "https://github.com/kokko-ng/claude-context-bar",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}
