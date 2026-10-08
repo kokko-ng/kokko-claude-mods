@@ -5,6 +5,9 @@ import type { ContextSnapshot } from '../types'
 
 const snapshot = atom({ plugin: 'context-bar', key: 'snapshot' } as const, null)
 const isLight = atom({ plugin: 'context-bar', key: 'isLight' } as const, false)
+// The thinking effort of the main conversation's latest request (low ...
+// max, or a token budget), or the settings' effortLevel before the first one.
+const effort = atom({ plugin: 'context-bar', key: 'effort' } as const, null)
 
 // Gruvbox Material, medium contrast (sainnhe/gruvbox-material), as hex so the
 // bar can use the palette's orange, which the 16 ANSI colours lack. The light
@@ -119,12 +122,24 @@ const percentSegment = (p: Palette, percent: number): Segment => ({
 })
 
 // Everything the band draws, sized so no line is wider than `columns`.
-export const layout = (s: ContextSnapshot, columns: number, p: Palette = PALETTES.dark): Layout => {
+export const layout = (
+  s: ContextSnapshot,
+  columns: number,
+  p: Palette = PALETTES.dark,
+  thinking: string | null = null,
+): Layout => {
   const pct = percentSegment(p, s.percent)
   const tokens: Segment = { text: `  ${formatTokens(s.used)} / ${formatTokens(s.max)}`, color: p.grey }
+  const effortLabel: Segment = { text: '  effort ', color: p.grey }
+  const effortValue: Segment = { text: thinking ?? '', color: p.aqua, bold: true }
 
   // Widest suffix that still leaves room for a bar, else the percentage alone.
-  const suffixes: Segment[][] = [[{ text: ' ' }, pct, tokens], [{ text: ' ' }, pct]]
+  // The effort goes first as the band narrows, then the token count.
+  const suffixes: Segment[][] = [
+    ...(thinking ? [[{ text: ' ' }, pct, tokens, effortLabel, effortValue]] : []),
+    [{ text: ' ' }, pct, tokens],
+    [{ text: ' ' }, pct],
+  ]
   const suffix = suffixes.find(sfx => columns - widthOf(sfx) >= BAR_MIN)
   if (!suffix) return { bar: columns >= pct.text.length ? [pct] : [], legend: [] }
 
@@ -181,6 +196,13 @@ async function refresh($: EngineInterface): Promise<void> {
   await update($, snapshot, () => next)
 }
 
+// Before the first request, the effort the settings ask for.
+async function readEffort($: EngineInterface): Promise<void> {
+  const settings = await $.settings.read().catch(() => ({}))
+  const level = (settings as { effortLevel?: unknown }).effortLevel
+  if (typeof level === 'string' && level) await update($, effort, () => level)
+}
+
 async function readTheme($: EngineInterface): Promise<void> {
   const row = (await $.config.list()).find(r => r.key === 'theme')
   await update($, isLight, () => isLightTheme(row?.value))
@@ -190,8 +212,20 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     await readTheme($)
+    await readEffort($)
     await refresh($)
     return result
+  })
+
+  // The effort each request of the main conversation is actually sent with
+  // (the session's setting, /effort, or the model's default). Subagents'
+  // requests (e.agentId) run at their own effort and are left out.
+  on('turn.step', async function* ($, e, next) {
+    if (e.agentId === undefined && e.effort !== undefined) {
+      const sent = String(e.effort)
+      await update($, effort, () => sent)
+    }
+    return yield* next(e)
   })
 
   // A theme change from /config or another plugin (theme-sync) redraws the
@@ -213,7 +247,7 @@ export const register: Register = on => {
     if (s === null || e.props.hasSurvey) return next(e)
 
     const palette = (await read($, isLight)) ? PALETTES.light : PALETTES.dark
-    const { bar, legend } = layout(s, e.props.bodyColumns, palette)
+    const { bar, legend } = layout(s, e.props.bodyColumns, palette, await read($, effort))
     if (bar.length === 0) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)

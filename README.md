@@ -14,7 +14,7 @@ A band above the prompt: a context-window bar split by category, and how many
 tokens each category holds.
 
 ```
-▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆ 42%  84k / 200k
+▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆ 42%  84k / 200k  effort high
 ● system 4k  ● tools 20k  ● memory 200  ● messages 59.8k
 ```
 
@@ -23,7 +23,9 @@ tokens each category holds.
   yellow at 50% and red at 80%. The light palette is used while the Claude
   Code theme is a `light*` one, dark otherwise, and the band switches as soon
   as the theme changes (`/config`, or theme-sync).
-- Sized to the band's width: as the terminal narrows it drops the token count,
+- The thinking effort of the conversation's latest request (`/effort`, the
+  settings' `effortLevel`, or the model's default) follows the token count.
+- Sized to the band's width: as the terminal narrows it drops the effort, then the token count,
   then the legend's smallest categories, then the legend, then the bar, and
   never wraps.
 

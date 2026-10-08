@@ -180,6 +180,7 @@ test('follows the theme: at session start and on every theme change', async ($, 
     theme = String(e.value)
     return { value: e.value }
   })
+  on('settings.read', () => ({ value: {} }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
 
   const percentColor = async () => {
@@ -194,4 +195,30 @@ test('follows the theme: at session start and on every theme change', async ($, 
   expect(await percentColor()).toBe(PALETTES.dark.green)
   await $.config.set({ key: 'theme', value: 'light-ansi' })
   expect(await percentColor()).toBe(PALETTES.light.green)
+})
+
+test('thinking effort: shown after the token count, dropped first as the band narrows', async () => {
+  const wide = layout(SNAPSHOT, 120, PALETTES.dark, 'high')
+  expect(text(wide.bar)).toContain('42%  84k / 200k  effort high')
+  expect(wide.bar.find(s => s.text === 'high')?.color).toBe(PALETTES.dark.aqua)
+  expect(text(layout(SNAPSHOT, 120).bar)).not.toContain('effort')
+  // Too narrow for the effort: the token count stays, the effort goes.
+  const mid = layout(SNAPSHOT, 34, PALETTES.dark, 'high')
+  expect(text(mid.bar)).toContain('84k / 200k')
+  expect(text(mid.bar)).not.toContain('effort')
+  for (let columns = 1; columns <= 200; columns++) {
+    expect(text(layout(SNAPSHOT, columns, PALETTES.dark, 'xhigh').bar).length).toBeLessThanOrEqual(columns)
+  }
+})
+
+test('thinking effort: the settings\' effortLevel before the first request', async ($, on) => {
+  on('ui.render', () => <></>)
+  on('session.usage', () => ({ value: USAGE }))
+  on('session.start', (_$, e) => ({ cwd: e.cwd }))
+  on('config.list', () => ({ value: [] }))
+  on('settings.read', () => ({ value: { effortLevel: 'high' } as never }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ plugin: 'context-bar', surface: 'terminal', ...band(120) })
+  expect((await ui.find({ key: 'bar' }))?.text).toContain('effort high')
+  await ui.unmount()
 })
