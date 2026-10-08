@@ -1,6 +1,6 @@
 {
   "name": "kokko-ng-claude-context-bar",
-  "description": "Claude Code mods: context-window bar, live theme sync",
+  "description": "Claude Code mods: context-window bar, live theme sync, memory sync",
   "owner": {
     "name": "kokko-ng"
   },
@@ -18,6 +18,15 @@
       "name": "theme-sync",
       "source": "./plugins/theme-sync",
       "description": "Applies the theme in ~/.claude/settings.json to running sessions as soon as the file changes",
+      "version": "1.0.0",
+      "author": {
+        "name": "kokko-ng"
+      }
+    },
+    {
+      "name": "memory-sync",
+      "source": "./plugins/memory-sync",
+      "description": "Keeps every project's auto memory in a private git repo, synced across machines",
       "version": "1.0.0",
       "author": {
         "name": "kokko-ng"

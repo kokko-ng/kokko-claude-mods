@@ -1,0 +1,8 @@
+{
+  "name": "memory-sync",
+  "version": "1.0.0",
+  "description": "Keeps every project's auto memory in a private git repo, synced across machines",
+  "author": { "name": "kokko-ng" },
+  "repository": "https://github.com/kokko-ng/claude-context-bar",
+  "license": "MIT"
+}
