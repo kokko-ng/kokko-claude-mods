@@ -9,7 +9,7 @@
       "name": "context-bar",
       "source": "./plugins/context-bar",
       "description": "Band above the prompt: a context-window bar segmented by category, and what the context comprises",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "kokko-ng"
       }

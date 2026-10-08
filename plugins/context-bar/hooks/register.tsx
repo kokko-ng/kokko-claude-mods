@@ -4,31 +4,62 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { ContextSnapshot } from '../types'
 
 const snapshot = atom({ plugin: 'context-bar', key: 'snapshot' } as const, null)
+const isLight = atom({ plugin: 'context-bar', key: 'isLight' } as const, false)
 
-// Gruvbox Material dark, medium contrast (sainnhe/gruvbox-material), as hex
-// so the bar can use the palette's orange, which the 16 ANSI colours lack.
-// Each category keeps its colour across sessions, so the legend reads the
-// same every time.
-const GRUVBOX = {
-  red: '#ea6962',
-  orange: '#e78a4e',
-  yellow: '#d8a657',
-  green: '#a9b665',
-  aqua: '#89b482',
-  blue: '#7daea3',
-  purple: '#d3869b',
-  grey: '#a89984', // labels
-  track: '#504945', // empty part of the bar
-} as const
+// Gruvbox Material, medium contrast (sainnhe/gruvbox-material), as hex so the
+// bar can use the palette's orange, which the 16 ANSI colours lack. The light
+// palette follows a light-* Claude Code theme. Each category keeps its colour
+// across sessions, so the legend reads the same every time.
+export type Palette = {
+  red: string
+  orange: string
+  yellow: string
+  green: string
+  aqua: string
+  blue: string
+  purple: string
+  grey: string // labels
+  track: string // empty part of the bar
+}
 
-const CATEGORY_COLORS: Record<string, string> = {
-  system: GRUVBOX.blue,
-  tools: GRUVBOX.aqua,
-  mcp: GRUVBOX.purple,
-  agents: GRUVBOX.red,
-  memory: GRUVBOX.yellow,
-  skills: GRUVBOX.green,
-  messages: GRUVBOX.orange,
+export const PALETTES: Record<'dark' | 'light', Palette> = {
+  dark: {
+    red: '#ea6962',
+    orange: '#e78a4e',
+    yellow: '#d8a657',
+    green: '#a9b665',
+    aqua: '#89b482',
+    blue: '#7daea3',
+    purple: '#d3869b',
+    grey: '#a89984',
+    track: '#504945',
+  },
+  light: {
+    red: '#c14a4a',
+    orange: '#c35e0a',
+    yellow: '#b47109',
+    green: '#6c782e',
+    aqua: '#4c7a5d',
+    blue: '#45707a',
+    purple: '#945e80',
+    grey: '#7c6f64',
+    track: '#ddccab',
+  },
+}
+
+// A Claude Code theme value (`light-ansi`, `dark`, ...) is light by its name;
+// `auto` and custom themes count as dark.
+export const isLightTheme = (theme: unknown): boolean =>
+  typeof theme === 'string' && theme.startsWith('light')
+
+const CATEGORY: Record<string, keyof Palette> = {
+  system: 'blue',
+  tools: 'aqua',
+  mcp: 'purple',
+  agents: 'red',
+  memory: 'yellow',
+  skills: 'green',
+  messages: 'orange',
 }
 
 const BAR_MAX = 48 // the bar never grows past this, however wide the terminal
@@ -58,7 +89,7 @@ export const formatTokens = (n: number): string =>
 
 export const label = (name: string): string => LABELS[name] ?? name.toLowerCase()
 
-const colorOf = (name: string): string => CATEGORY_COLORS[label(name)] ?? GRUVBOX.grey
+const colorOf = (p: Palette, name: string): string => p[CATEGORY[label(name)] ?? 'grey']
 
 const widthOf = (segments: Segment[]): number =>
   segments.reduce((n, s) => n + s.text.length, 0)
@@ -81,16 +112,16 @@ export const cellsPerRow = (s: ContextSnapshot, width: number): number[] => {
   return cells
 }
 
-const percentSegment = (percent: number): Segment => ({
+const percentSegment = (p: Palette, percent: number): Segment => ({
   text: `${percent}%`,
   bold: true,
-  color: percent >= 80 ? GRUVBOX.red : percent >= 50 ? GRUVBOX.yellow : GRUVBOX.green,
+  color: percent >= 80 ? p.red : percent >= 50 ? p.yellow : p.green,
 })
 
 // Everything the band draws, sized so no line is wider than `columns`.
-export const layout = (s: ContextSnapshot, columns: number): Layout => {
-  const pct = percentSegment(s.percent)
-  const tokens: Segment = { text: `  ${formatTokens(s.used)} / ${formatTokens(s.max)}`, color: GRUVBOX.grey }
+export const layout = (s: ContextSnapshot, columns: number, p: Palette = PALETTES.dark): Layout => {
+  const pct = percentSegment(p, s.percent)
+  const tokens: Segment = { text: `  ${formatTokens(s.used)} / ${formatTokens(s.max)}`, color: p.grey }
 
   // Widest suffix that still leaves room for a bar, else the percentage alone.
   const suffixes: Segment[][] = [[{ text: ' ' }, pct, tokens], [{ text: ' ' }, pct]]
@@ -100,10 +131,10 @@ export const layout = (s: ContextSnapshot, columns: number): Layout => {
   const width = Math.min(BAR_MAX, columns - widthOf(suffix))
   const cells = cellsPerRow(s, width)
   const bar: Segment[] = s.rows
-    .map((r, i) => ({ text: CELL.repeat(cells[i] ?? 0), color: colorOf(r.name) }))
+    .map((r, i) => ({ text: CELL.repeat(cells[i] ?? 0), color: colorOf(p, r.name) }))
     .filter(seg => seg.text.length > 0)
   const free = width - widthOf(bar)
-  if (free > 0) bar.push({ text: CELL.repeat(free), color: GRUVBOX.track })
+  if (free > 0) bar.push({ text: CELL.repeat(free), color: p.track })
   bar.push(...suffix)
 
   if (columns < LEGEND_MIN_COLUMNS) return { bar, legend: [] }
@@ -128,8 +159,8 @@ export const layout = (s: ContextSnapshot, columns: number): Layout => {
     if (!chosen.has(item.i)) continue
     if (legend.length > 0) legend.push({ text: '  ' })
     const name = s.rows[item.i]?.name ?? ''
-    legend.push({ text: '●', color: colorOf(name) })
-    legend.push({ text: ` ${label(name)}`, color: GRUVBOX.grey })
+    legend.push({ text: '●', color: colorOf(p, name) })
+    legend.push({ text: ` ${label(name)}`, color: p.grey })
     legend.push({ text: ` ${formatTokens(item.tokens)}` })
   }
   return { bar, legend }
@@ -150,10 +181,24 @@ async function refresh($: EngineInterface): Promise<void> {
   await update($, snapshot, () => next)
 }
 
+async function readTheme($: EngineInterface): Promise<void> {
+  const row = (await $.config.list()).find(r => r.key === 'theme')
+  await update($, isLight, () => isLightTheme(row?.value))
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const result = await next(e)
+    await readTheme($)
     await refresh($)
+    return result
+  })
+
+  // A theme change from /config or another plugin (theme-sync) redraws the
+  // band in the matching palette.
+  on('config.set', { key: 'theme' }, async ($, e, next) => {
+    const result = await next(e)
+    if (result.deny === undefined) await update($, isLight, () => isLightTheme(result.value))
     return result
   })
 
@@ -167,7 +212,8 @@ export const register: Register = on => {
     const s = await read($, snapshot)
     if (s === null || e.props.hasSurvey) return next(e)
 
-    const { bar, legend } = layout(s, e.props.bodyColumns)
+    const palette = (await read($, isLight)) ? PALETTES.light : PALETTES.dark
+    const { bar, legend } = layout(s, e.props.bodyColumns, palette)
     if (bar.length === 0) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)

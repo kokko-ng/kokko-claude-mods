@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { cellsPerRow, formatTokens, label, layout } from '../hooks/register'
+import { cellsPerRow, formatTokens, isLightTheme, label, layout, PALETTES } from '../hooks/register'
 import type { Segment } from '../hooks/register'
 import type { ContextSnapshot } from '../types'
 
@@ -28,6 +28,34 @@ const band = (bodyColumns: number) =>
       view: {},
     },
   }) as const
+
+const USAGE = {
+  startedAt: 0,
+  rateLimits: [],
+  context: {
+    tokens: SNAPSHOT.used,
+    window: SNAPSHOT.max,
+    percent: SNAPSHOT.percent,
+    breakdown: {
+      categories: [
+        ...SNAPSHOT.rows.map(r => ({ ...r, color: 'text', isDeferred: false, kind: 'used' as const })),
+        { name: 'Free space', tokens: 116_000, color: 'inactive', isDeferred: false, kind: 'free' as const },
+      ],
+      totalTokens: SNAPSHOT.used,
+      maxTokens: SNAPSHOT.max,
+      rawMaxTokens: SNAPSHOT.max,
+      autocompactSource: 'model-default' as const,
+      percentage: SNAPSHOT.percent,
+      gridRows: [],
+      model: 'Opus 5.5',
+      memoryFiles: [],
+      mcpTools: [],
+      agents: [],
+      isAutoCompactEnabled: true,
+      apiUsage: null,
+    },
+  },
+}
 
 const text = (segments: Segment[]): string => segments.map(s => s.text).join('')
 
@@ -95,35 +123,7 @@ test('gruvbox colours: fixed per category, track for free space', async () => {
 
 test('band draws within its width on every surface', async ($, on) => {
   on('ui.render', () => <></>)
-  on('session.usage', () => ({
-    value: {
-      startedAt: 0,
-      rateLimits: [],
-      context: {
-        tokens: SNAPSHOT.used,
-        window: SNAPSHOT.max,
-        percent: SNAPSHOT.percent,
-        breakdown: {
-          categories: [
-            ...SNAPSHOT.rows.map(r => ({ ...r, color: 'text', isDeferred: false, kind: 'used' as const })),
-            { name: 'Free space', tokens: 116_000, color: 'inactive', isDeferred: false, kind: 'free' as const },
-          ],
-          totalTokens: SNAPSHOT.used,
-          maxTokens: SNAPSHOT.max,
-          rawMaxTokens: SNAPSHOT.max,
-          autocompactSource: 'model-default' as const,
-          percentage: SNAPSHOT.percent,
-          gridRows: [],
-          model: 'Opus 5.5',
-          memoryFiles: [],
-          mcpTools: [],
-          agents: [],
-          isAutoCompactEnabled: true,
-          apiUsage: null,
-        },
-      },
-    },
-  }))
+  on('session.usage', () => ({ value: USAGE }))
   on('session.measure', (_$, e) => ({ changed: e.changed }))
   await $.session.measure({
     context: { tokens: SNAPSHOT.used, window: SNAPSHOT.max, percent: SNAPSHOT.percent },
@@ -143,4 +143,55 @@ test('band draws within its width on every surface', async ($, on) => {
       await ui.unmount()
     }
   }
+})
+
+test('light palette: Gruvbox Material light for light-* themes', async () => {
+  expect(isLightTheme('light-ansi')).toBe(true)
+  expect(isLightTheme('light')).toBe(true)
+  expect(isLightTheme('dark-ansi')).toBe(false)
+  expect(isLightTheme('auto')).toBe(false)
+  expect(isLightTheme(undefined)).toBe(false)
+
+  const { bar, legend } = layout(SNAPSHOT, 120, PALETTES.light)
+  expect(bar[bar.length - 4]?.color).toBe('#ddccab') // track
+  expect(bar.find(s => s.text.endsWith('%'))?.color).toBe('#6c782e') // 42% green
+  const dots = legend.filter(s => s.text === '●').map(s => s.color)
+  expect(dots).toEqual(['#45707a', '#4c7a5d', '#b47109', '#c35e0a'])
+})
+
+test('follows the theme: at session start and on every theme change', async ($, on) => {
+  let theme = 'light-ansi'
+  on('ui.render', () => <></>)
+  on('session.usage', () => ({ value: USAGE }))
+  on('session.start', (_$, e) => ({ cwd: e.cwd }))
+  on('config.list', () => ({
+    value: [
+      {
+        key: 'theme',
+        label: 'Theme',
+        kind: 'choice',
+        value: theme,
+        provider: { plugin: 'engine', tier: 'core' },
+        isLocked: false,
+      },
+    ] as never,
+  }))
+  on('config.set', (_$, e) => {
+    theme = String(e.value)
+    return { value: e.value }
+  })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+  const percentColor = async () => {
+    const ui = await $.ui.mount({ plugin: 'context-bar', surface: 'terminal', ...band(120) })
+    const pct = await ui.find({ type: 'Text', text: '42%' })
+    await ui.unmount()
+    return pct?.props.color
+  }
+
+  expect(await percentColor()).toBe(PALETTES.light.green)
+  await $.config.set({ key: 'theme', value: 'dark-ansi' })
+  expect(await percentColor()).toBe(PALETTES.dark.green)
+  await $.config.set({ key: 'theme', value: 'light-ansi' })
+  expect(await percentColor()).toBe(PALETTES.light.green)
 })

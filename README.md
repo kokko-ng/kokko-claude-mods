@@ -19,8 +19,10 @@ tokens each category holds.
 ```
 
 - Colours are [Gruvbox Material](https://github.com/sainnhe/gruvbox-material)
-  dark (medium contrast), one fixed colour per category; the percentage turns
-  yellow at 50% and red at 80%.
+  (medium contrast), one fixed colour per category; the percentage turns
+  yellow at 50% and red at 80%. The light palette is used while the Claude
+  Code theme is a `light*` one, dark otherwise, and the band switches as soon
+  as the theme changes (`/config`, or theme-sync).
 - Sized to the band's width: as the terminal narrows it drops the token count,
   then the legend's smallest categories, then the legend, then the bar, and
   never wraps.
