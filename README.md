@@ -1,4 +1,4 @@
-# Claude Code mods
+# kokko-claude-mods
 
 Three Claude Code mods in one marketplace:
 
@@ -30,7 +30,7 @@ tokens each category holds.
 At a Claude Code prompt in a terminal:
 
 ```
-/plugin install context-bar --marketplace kokko-ng/claude-context-bar
+/plugin install context-bar --marketplace kokko-ng/kokko-claude-mods
 ```
 
 Answer `y` to add the marketplace, then pick the user scope.
@@ -40,11 +40,11 @@ Or in `~/.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "kokko-ng-claude-context-bar": {
-      "source": { "source": "github", "repo": "kokko-ng/claude-context-bar" }
+    "kokko-claude-mods": {
+      "source": { "source": "github", "repo": "kokko-ng/kokko-claude-mods" }
     }
   },
-  "enabledPlugins": { "context-bar@kokko-ng-claude-context-bar": true }
+  "enabledPlugins": { "context-bar@kokko-claude-mods": true }
 }
 ```
 
@@ -61,10 +61,10 @@ toast. Edit the file from anywhere (a script that flips `light-ansi` and
 session follows.
 
 ```
-/plugin install theme-sync --marketplace kokko-ng/claude-context-bar
+/plugin install theme-sync --marketplace kokko-ng/kokko-claude-mods
 ```
 
-or `"theme-sync@kokko-ng-claude-context-bar": true` under `enabledPlugins`.
+or `"theme-sync@kokko-claude-mods": true` under `enabledPlugins`.
 
 ## memory-sync
 
@@ -90,7 +90,7 @@ private and empty first:
 
 ```bash
 gh repo create <owner>/claude-memory --private
-/plugin install memory-sync --marketplace kokko-ng/claude-context-bar
+/plugin install memory-sync --marketplace kokko-ng/kokko-claude-mods
 ```
 
 Mods do not run where `disableAllHooks` is set, and a `settings.local.json`

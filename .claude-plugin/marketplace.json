@@ -1,5 +1,5 @@
 {
-  "name": "kokko-ng-claude-context-bar",
+  "name": "kokko-claude-mods",
   "description": "Claude Code mods: context-window bar, live theme sync, memory sync",
   "owner": {
     "name": "kokko-ng"
