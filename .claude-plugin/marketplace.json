@@ -1,14 +1,27 @@
 {
   "name": "kokko-ng-claude-context-bar",
-  "description": "Claude Code context-window bar, as a mod",
-  "owner": { "name": "kokko-ng" },
+  "description": "Claude Code mods: context-window bar, live theme sync",
+  "owner": {
+    "name": "kokko-ng"
+  },
   "plugins": [
     {
       "name": "context-bar",
-      "source": "./",
+      "source": "./plugins/context-bar",
       "description": "Band above the prompt: a context-window bar segmented by category, and what the context comprises",
       "version": "1.0.0",
-      "author": { "name": "kokko-ng" }
+      "author": {
+        "name": "kokko-ng"
+      }
+    },
+    {
+      "name": "theme-sync",
+      "source": "./plugins/theme-sync",
+      "description": "Applies the theme in ~/.claude/settings.json to running sessions as soon as the file changes",
+      "version": "1.0.0",
+      "author": {
+        "name": "kokko-ng"
+      }
     }
   ]
 }

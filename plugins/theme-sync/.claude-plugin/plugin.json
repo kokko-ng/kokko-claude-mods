@@ -1,0 +1,8 @@
+{
+  "name": "theme-sync",
+  "version": "1.0.0",
+  "description": "Applies the theme in ~/.claude/settings.json to running sessions as soon as the file changes",
+  "author": { "name": "kokko-ng" },
+  "repository": "https://github.com/kokko-ng/claude-context-bar",
+  "license": "MIT"
+}

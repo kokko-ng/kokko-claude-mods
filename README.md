@@ -1,7 +1,15 @@
-# context-bar
+# Claude Code mods
 
-A Claude Code mod that draws a band above the prompt: a context-window bar
-split by category, and how many tokens each category holds.
+Two Claude Code mods in one marketplace:
+
+- [context-bar](#context-bar): a context-window bar above the prompt.
+- [theme-sync](#theme-sync): applies `theme` changes in
+  `~/.claude/settings.json` to running sessions.
+
+## context-bar
+
+A band above the prompt: a context-window bar split by category, and how many
+tokens each category holds.
 
 ```
 ▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆▆ 42%  84k / 200k
@@ -15,7 +23,7 @@ split by category, and how many tokens each category holds.
   then the legend's smallest categories, then the legend, then the bar, and
   never wraps.
 
-## Install
+### Install
 
 At a Claude Code prompt in a terminal:
 
@@ -41,9 +49,28 @@ Or in `~/.claude/settings.json`:
 Mods (function-hook plugins) are an early-access Claude Code feature; this one
 is built and tested against Claude Code 2.1.292.
 
+## theme-sync
+
+Claude Code reloads `~/.claude/settings.json` when it changes but keeps the
+running session's theme. theme-sync checks the file once a second and, when
+its `theme` differs from the session's, sets it as `/config` would, with a
+toast. Edit the file from anywhere (a script that flips `light-ansi` and
+`dark-ansi` alongside the terminal theme, for instance) and every open
+session follows.
+
+```
+/plugin install theme-sync --marketplace kokko-ng/claude-context-bar
+```
+
+or `"theme-sync@kokko-ng-claude-context-bar": true` under `enabledPlugins`.
+
 ## Development
 
+Each mod is its own plugin under `plugins/`:
+
 ```bash
-claude plugin validate .
-claude plugin test .
+claude plugin validate plugins/context-bar
+claude plugin test plugins/context-bar
+claude plugin validate plugins/theme-sync
+claude plugin test plugins/theme-sync
 ```
