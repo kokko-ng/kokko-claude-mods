@@ -1,10 +1,8 @@
 # kokko-claude-mods
 
-Three Claude Code mods in one marketplace:
+Two Claude Code mods in one marketplace:
 
 - [context-bar](#context-bar): a context-window bar above the prompt.
-- [theme-sync](#theme-sync): applies `theme` changes in
-  `~/.claude/settings.json` to running sessions.
 - [memory-sync](#memory-sync): keeps every project's auto memory in a private
   git repo, synced across machines.
 
@@ -22,7 +20,7 @@ tokens each category holds.
   (medium contrast), one fixed colour per category; the percentage turns
   yellow at 50% and red at 80%. The light palette is used while the Claude
   Code theme is a `light*` one, dark otherwise, and the band switches as soon
-  as the theme changes (`/config`, or theme-sync).
+  as the theme changes (`/config`).
 - The thinking effort of the conversation's latest request (`/effort`, the
   settings' `effortLevel`, or the model's default) follows the token count.
 - Sized to the band's width: as the terminal narrows it drops the effort, then the token count,
@@ -54,21 +52,6 @@ Or in `~/.claude/settings.json`:
 
 Mods (function-hook plugins) are an early-access Claude Code feature; this one
 is built and tested against Claude Code 2.1.292.
-
-## theme-sync
-
-Claude Code reloads `~/.claude/settings.json` when it changes but keeps the
-running session's theme. theme-sync checks the file once a second and, when
-its `theme` differs from the session's, sets it as `/config` would, with a
-toast. Edit the file from anywhere (a script that flips `light-ansi` and
-`dark-ansi` alongside the terminal theme, for instance) and every open
-session follows.
-
-```
-/plugin install theme-sync --marketplace kokko-ng/kokko-claude-mods
-```
-
-or `"theme-sync@kokko-claude-mods": true` under `enabledPlugins`.
 
 ## memory-sync
 
@@ -121,8 +104,6 @@ Each mod is its own plugin under `plugins/`:
 ```bash
 claude plugin validate plugins/context-bar
 claude plugin test plugins/context-bar
-claude plugin validate plugins/theme-sync
-claude plugin test plugins/theme-sync
 claude plugin validate plugins/memory-sync
 claude plugin test plugins/memory-sync
 ```

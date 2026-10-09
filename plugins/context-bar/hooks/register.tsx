@@ -228,7 +228,7 @@ export const register: Register = on => {
     return yield* next(e)
   })
 
-  // A theme change from /config or another plugin (theme-sync) redraws the
+  // A theme change from /config or another plugin redraws the
   // band in the matching palette.
   on('config.set', { key: 'theme' }, async ($, e, next) => {
     const result = await next(e)
