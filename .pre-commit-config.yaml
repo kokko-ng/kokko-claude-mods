@@ -1,0 +1,51 @@
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit, manual]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # Claude Code itself, pinned, runs each mod's checks. There is no
+  # TypeScript check: tsc needs the 'claude-code' declarations, which Claude
+  # Code writes into each mod's gitignored .claude-plugin/types/ only while an
+  # interactive session loads the mod.
+  - repo: local
+    hooks:
+      - id: claude-plugin-validate
+        name: claude plugin validate --strict
+        language: node
+        additional_dependencies: ["@anthropic-ai/claude-code@2.1.295"]
+        entry: >-
+          bash -c 'for dir in . plugins/*/; do
+          claude plugin validate --strict "$dir" >/dev/null || { claude plugin validate --strict "$dir"; exit 1; };
+          done'
+        files: ^(\.claude-plugin|plugins)/
+        pass_filenames: false
+      - id: claude-plugin-test
+        name: claude plugin test
+        language: node
+        additional_dependencies: ["@anthropic-ai/claude-code@2.1.295"]
+        entry: >-
+          bash -c 'for dir in plugins/*/; do
+          claude plugin test "$dir" || exit 1;
+          done'
+        files: ^plugins/
+        pass_filenames: false
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.19.2
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
