@@ -102,6 +102,12 @@ in `~/.claude` sets it for sessions started in your home folder.
 
 ## Development
 
+Run `pre-commit install` once per clone. It installs the pre-commit and
+commit-msg hooks: file hygiene, gitleaks, `claude plugin validate --strict`
+and `claude plugin test` for every mod (on a pinned Claude Code), and
+[Conventional Commits](https://www.conventionalcommits.org/) messages checked
+by commitizen. CI runs the same hooks and checks every commit message.
+
 Each mod is its own plugin under `plugins/`:
 
 ```bash
