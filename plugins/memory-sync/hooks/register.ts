@@ -23,9 +23,33 @@ const EXCLUDE = `# memory-sync: track only <project>/memory/ under projects/
 .DS_Store
 `
 
-// Two machines editing one memory file (often MEMORY.md, the index) merge by
-// keeping both sides' lines: nothing is lost and a sync never stalls on it.
-const ATTRIBUTES = `*.md merge=union
+// Two machines editing the index (MEMORY.md) merge by keeping both sides'
+// lines. Any other memory both changed goes through MERGE_DRIVER: a clean
+// three-way merge when there is one, else the version already pushed stays and
+// this machine's is kept beside it as <name>.from-<host>.md. Nothing is lost,
+// no file is interleaved, and a sync never stalls on it.
+const ATTRIBUTES = `*.md merge=memory-sync
+MEMORY.md merge=union
+`
+
+// git runs it from the top of the work tree as: sh <script> %O %A %B %P <host>.
+// During the rebase a sync does, %A is what other machines pushed and %B is
+// this machine's change being replayed.
+const MERGE_DRIVER = `#!/bin/sh
+base=$1 ours=$2 theirs=$3 path=$4 host=$5
+if git merge-file -p -q "$ours" "$base" "$theirs" >"$ours.merged" 2>/dev/null; then
+    mv "$ours.merged" "$ours"
+    exit 0
+fi
+rm -f "$ours.merged"
+side="\${path%.md}.from-$host.md"
+n=2
+while [ -e "$side" ]; do
+    side="\${path%.md}.from-$host-$n.md"
+    n=$((n + 1))
+done
+cp "$theirs" "$side"
+exit 0
 `
 
 type Config = { dir: string; gitDir: string; repo: string; url: string; host: string }
@@ -71,6 +95,12 @@ async function commitChanges($: EngineInterface, cfg: Config) {
 async function writeRules($: EngineInterface, cfg: Config) {
   await $.fs.write(`${cfg.gitDir}/info/exclude`, EXCLUDE)
   await $.fs.write(`${cfg.gitDir}/info/attributes`, ATTRIBUTES)
+  await $.fs.write(`${cfg.gitDir}/memory-merge.sh`, MERGE_DRIVER)
+  const driver = `sh "${cfg.gitDir}/memory-merge.sh" %O %A %B %P ${cfg.host}`
+  if ((await git($, cfg, ['config', 'merge.memory-sync.driver'])).stdout.trim() !== driver) {
+    await gitOk($, cfg, ['config', 'merge.memory-sync.name', 'memory-sync: merge, else keep both'])
+    await gitOk($, cfg, ['config', 'merge.memory-sync.driver', driver])
+  }
 }
 
 async function setUp($: EngineInterface, cfg: Config) {
@@ -108,6 +138,8 @@ async function syncOnce($: EngineInterface, cfg: Config) {
           `GIT_DIR=${cfg.gitDir} GIT_WORK_TREE=${cfg.dir}/projects git rebase origin/main`,
       )
     }
+    // A conflicting memory kept as <name>.from-<host>.md goes up with this sync.
+    await commitChanges($, cfg)
   }
   const isAhead =
     hasLocal && (!hasRemote || (await gitOk($, cfg, ['rev-list', '--count', 'origin/main..HEAD'])).trim() !== '0')
@@ -151,7 +183,7 @@ export const register: Register = on => {
 
     const dir = (await $.env.get('CLAUDE_CONFIG_DIR')) ?? `${await $.env.get('HOME')}/.claude`
     const repo = (await $.env.get('CLAUDE_MEMORY_REPO')) ?? DEFAULT_REPO
-    const host = (await $.process.run(['hostname', '-s'])).stdout.trim() || 'mac'
+    const host = (await $.process.run(['hostname', '-s'])).stdout.trim().replace(/[^A-Za-z0-9-]/g, '-') || 'mac'
     config = {
       dir,
       gitDir: `${dir}/memory-sync.git`,

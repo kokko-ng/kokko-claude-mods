@@ -84,9 +84,17 @@ in a git repo, so each machine sees the others' memories.
   session pulls every ten minutes.
 - The first run on a machine imports its memories: it restores what the repo
   has that the machine lacks and commits the rest on top.
-- Two machines editing one memory file merge by keeping both sides' lines
-  (`merge=union`), so `MEMORY.md` index additions never conflict. Anything
-  git cannot merge is left unpushed with a toast saying how to resolve it.
+- Machines never clash. `MEMORY.md` indexes merge line by line
+  (`merge=union`), so every machine's entries are kept. Any other memory both
+  machines changed gets a normal three-way merge; if that conflicts, the
+  version already pushed stays and this machine's is kept beside it as
+  `<name>.from-<host>.md` (a git merge driver the mod installs), so nothing is
+  lost or interleaved and the sync carries on. Reconcile those pairs when they
+  appear. Only a memory deleted on one machine and changed on another stops
+  the sync, with a toast saying how to resolve it.
+- Projects are matched by folder name, which Claude Code derives from the
+  project's absolute path: use the same username and code folder on every
+  machine for a project's memories to be shared.
 
 The repo defaults to `kokko-ng/claude-memory`; set `CLAUDE_MEMORY_REPO` to
 `owner/name` (GitHub, using your git credentials) or any git URL. Create it

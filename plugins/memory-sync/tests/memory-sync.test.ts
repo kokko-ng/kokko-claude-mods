@@ -58,6 +58,8 @@ test('first run: imports local memories into an empty remote and pushes', async 
   expect(calls.some(c => c.startsWith('reset'))).toBe(false)
   expect(files.has(`${GIT_DIR}/info/exclude`)).toBe(true)
   expect(files.has(`${GIT_DIR}/info/attributes`)).toBe(true)
+  expect(files.has(`${GIT_DIR}/memory-merge.sh`)).toBe(true)
+  expect(calls).toContain(`config merge.memory-sync.driver sh "${GIT_DIR}/memory-merge.sh" %O %A %B %P mbp`)
   expect(toasts).toEqual(['memory-sync: syncing memories with kokko-ng/claude-memory'])
 })
 
@@ -97,6 +99,27 @@ test('behind the remote: rebases onto it', async ($, on) => {
 
   expect(calls).toContain('rebase -q origin/main')
   expect(calls.some(c => c.startsWith('push'))).toBe(false)
+  // A memory kept beside its conflicting copy is committed straight after.
+  expect(calls.lastIndexOf('add -A')).toBeGreaterThan(calls.indexOf('rebase -q origin/main'))
+})
+
+test('the merge driver is configured once, not on every sync', async ($, on) => {
+  const files = new Set([`${GIT_DIR}/HEAD`])
+  const driver = `sh "${GIT_DIR}/memory-merge.sh" %O %A %B %P mbp`
+  const { clock, calls } = host(
+    on,
+    args => {
+      if (args.join(' ') === 'config merge.memory-sync.driver') return { stdout: `${driver}\n` }
+      if (args[0] === 'rev-list') return { stdout: '0\n' }
+      return undefined
+    },
+    files,
+  )
+
+  await $.session.start(start)
+  await clock.advance(10)
+
+  expect(calls.some(c => c.startsWith('config merge.memory-sync.driver sh'))).toBe(false)
 })
 
 test('a conflict aborts the rebase and says how to resolve it', async ($, on) => {
