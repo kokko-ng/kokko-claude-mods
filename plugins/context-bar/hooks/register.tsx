@@ -205,8 +205,16 @@ async function readEffort($: EngineInterface): Promise<void> {
 
 async function readTheme($: EngineInterface): Promise<void> {
   const row = (await $.config.list()).find(r => r.key === 'theme')
-  await update($, isLight, () => isLightTheme(row?.value))
+  const light = isLightTheme(row?.value)
+  if (light !== (await read($, isLight))) await update($, isLight, () => light)
 }
+
+// How often the theme is read again. A theme written straight to
+// settings.json (the `tt` toggle, `dev theme` in a devcontainer) reaches the
+// engine's theme row but raises no event a mod can hook, while the terminal
+// behind the band has already changed colour: the dark palette on a light
+// background falls under Ghostty's minimum-contrast and draws all black.
+const THEME_POLL_MS = 2000
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -214,6 +222,7 @@ export const register: Register = on => {
     await readTheme($)
     await readEffort($)
     await refresh($)
+    $.clock.every(THEME_POLL_MS, () => void readTheme($).catch(() => undefined))
     return result
   })
 
