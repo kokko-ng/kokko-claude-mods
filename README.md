@@ -20,7 +20,9 @@ tokens each category holds.
   (medium contrast), one fixed colour per category; the percentage turns
   yellow at 50% and red at 80%. The light palette is used while the Claude
   Code theme is a `light*` one, dark otherwise, and the band switches as soon
-  as the theme changes (`/config`).
+  as the theme changes (`/config`), or within two seconds when the theme is
+  written straight to `settings.json` (a theme toggle script, `dev theme` in
+  a devcontainer).
 - The thinking effort of the conversation's latest request (`/effort`, the
   settings' `effortLevel`, or the model's default) follows the token count.
 - Sized to the band's width: as the terminal narrows it drops the effort, then the token count,

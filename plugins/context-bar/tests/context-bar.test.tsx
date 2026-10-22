@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 import { cellsPerRow, formatTokens, isLightTheme, label, layout, PALETTES } from '../hooks/register'
 import type { Segment } from '../hooks/register'
@@ -195,6 +195,43 @@ test('follows the theme: at session start and on every theme change', async ($, 
   expect(await percentColor()).toBe(PALETTES.dark.green)
   await $.config.set({ key: 'theme', value: 'light-ansi' })
   expect(await percentColor()).toBe(PALETTES.light.green)
+})
+
+test('follows a theme written to settings.json, which raises no config.set', async ($, on) => {
+  const clock = mock.clock(on)
+  let theme = 'dark-ansi'
+  on('ui.render', () => <></>)
+  on('session.usage', () => ({ value: USAGE }))
+  on('session.start', (_$, e) => ({ cwd: e.cwd }))
+  on('config.list', () => ({
+    value: [
+      {
+        key: 'theme',
+        label: 'Theme',
+        kind: 'choice',
+        value: theme,
+        provider: { plugin: 'engine', tier: 'core' },
+        isLocked: false,
+      },
+    ] as never,
+  }))
+  on('settings.read', () => ({ value: {} }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+  const percentColor = async () => {
+    const ui = await $.ui.mount({ plugin: 'context-bar', surface: 'terminal', ...band(120) })
+    const pct = await ui.find({ type: 'Text', text: '42%' })
+    await ui.unmount()
+    return pct?.props.color
+  }
+
+  expect(await percentColor()).toBe(PALETTES.dark.green)
+  theme = 'light-ansi' // `tt` / `dev theme` rewrote the file
+  await clock.advance(2000)
+  expect(await percentColor()).toBe(PALETTES.light.green)
+  theme = 'dark-ansi'
+  await clock.advance(2000)
+  expect(await percentColor()).toBe(PALETTES.dark.green)
 })
 
 test('thinking effort: shown after the token count, dropped first as the band narrows', async () => {
